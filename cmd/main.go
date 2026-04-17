@@ -6,6 +6,7 @@ import (
 	"github.com/druva-06/tiny-url/internal/config"
 	"github.com/druva-06/tiny-url/internal/handler"
 	"github.com/druva-06/tiny-url/internal/repository"
+	"github.com/druva-06/tiny-url/internal/repository/cache"
 	"github.com/druva-06/tiny-url/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -14,9 +15,11 @@ import (
 func main() {
 	loadEnv()
 	db := config.NewDB()
+	redis := config.NewRedis()
 
+	rdb := cache.NewURLCache(redis)
 	repo := repository.NewURLRepository(db)
-	service := service.NewURLService(repo)
+	service := service.NewURLService(repo, rdb)
 	handler := handler.NewURLHandler(service)
 
 	r := gin.Default()
