@@ -31,8 +31,9 @@ func (h *URLHandler) CreateShortURL(c *gin.Context) {
 }
 
 func (h *URLHandler) GetLongURL(c *gin.Context) {
+	ctx := c.Request.Context()
 	code := c.Param("code")
-	longUrl, err := h.service.GetLongURL(code)
+	longUrl, err := h.service.GetLongURL(ctx, code)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

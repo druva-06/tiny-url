@@ -33,11 +33,11 @@ func (s *URLService) CreateShortURL(longUrl string) (string, error) {
 	return shortCode, nil
 }
 
-func (s *URLService) GetLongURL(shortCode string) (string, error) {
+func (s *URLService) GetLongURL(ctx context.Context, shortCode string) (string, error) {
 
 	cacheKey := "url:short:" + shortCode
 	log.Printf("[GetOriginalURL] START code=%s cacheKey=%s", shortCode, cacheKey)
-	value, err := s.rdb.Get(context.Background(), cacheKey)
+	value, err := s.rdb.Get(ctx, cacheKey)
 	if err == nil {
 		log.Printf("[GetOriginalURL] CACHE HIT code=%s value=%s", shortCode, value)
 		return value, err
