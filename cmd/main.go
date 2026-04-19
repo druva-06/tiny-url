@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/druva-06/tiny-url/internal/config"
@@ -23,9 +24,10 @@ func main() {
 	handler := handler.NewURLHandler(service)
 
 	r := gin.Default()
-
+	fmt.Println("Satrted")
 	r.POST("/url/short", handler.CreateShortURL)
 	r.GET("/url/short/:code", handler.GetLongURL)
+	r.PATCH("/url/short/:code", handler.UpdateLongUrl)
 
 	r.Run(":8080")
 

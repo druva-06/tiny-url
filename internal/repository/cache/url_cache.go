@@ -22,3 +22,7 @@ func (c *URLCache) Get(ctx context.Context, key string) (string, error) {
 func (c *URLCache) Set(ctx context.Context, key string, value string, ttl time.Duration) error {
 	return c.rdb.Set(ctx, key, value, ttl).Err()
 }
+
+func (c *URLCache) Exists(ctx context.Context, key string) (int64, error) {
+	return c.rdb.Exists(ctx, key).Result()
+}
