@@ -2,9 +2,9 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -13,11 +13,33 @@ import (
 var Ctx = context.Background()
 
 func NewRedis() *redis.Client {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", os.Getenv("REDIS_HOST"), os.Getenv("REDIS_PORT")),
-		Password: "", // no password by default
-		DB:       0,
-	})
+	var rdb *redis.Client
+	if sentinels := strings.TrimSpace(os.Getenv("REDIS_SENTINELS")); sentinels != "" {
+		addrs := strings.Split(sentinels, ",")
+		for i := range addrs {
+			addrs[i] = strings.TrimSpace(addrs[i])
+		}
+		rdb = redis.NewFailoverClient(&redis.FailoverOptions{
+			MasterName:    os.Getenv("REDIS_MASTER_NAME"),
+			SentinelAddrs: addrs,
+			Password:      "", // no password by default
+			DB:            0,
+		})
+	} else {
+		addr := "localhost:6379"
+		if host := strings.TrimSpace(os.Getenv("REDIS_HOST")); host != "" {
+			port := strings.TrimSpace(os.Getenv("REDIS_PORT"))
+			if port == "" {
+				port = "6379"
+			}
+			addr = host + ":" + port
+		}
+		rdb = redis.NewClient(&redis.Options{
+			Addr:     addr,
+			Password: "", // no password by default
+			DB:       0,
+		})
+	}
 
 	ctx, cancel := context.WithTimeout(Ctx, 2*time.Second)
 	defer cancel()

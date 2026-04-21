@@ -1,5 +1,4 @@
 services:
-
   db:
     image: mysql:8.0
     restart: always
@@ -14,16 +13,63 @@ services:
       timeout: 3s
       retries: 20
       start_period: 10s
-
-  redis:
+    
+  redis-master:
     image: redis:latest
+    container_name: redis-master
     volumes:
-      - redis_data:/data
+      - redis_master_data:/data
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 20
+
+  redis-replica:
+    image: redis:latest
+    container_name: redis-replica
+    depends_on:
+      - redis-master
+    command: redis-server --replicaof redis-master 6379
+    volumes:
+      - redis_replica_data:/data
+    ports:
+      - "6380:6379"
+
+  sentinel1:
+    image: redis:latest
+    container_name: sentinel1
+    depends_on:
+      - redis-master
+    volumes:
+      - ./sentinel.conf:/etc/redis/sentinel.conf
+    command: redis-sentinel /etc/redis/sentinel.conf
+    ports:
+      - "26379:26379"
+
+  sentinel2:
+    image: redis:latest
+    container_name: sentinel2
+    depends_on:
+      - redis-master
+    volumes:
+      - ./sentinel.conf:/etc/redis/sentinel.conf
+    command: redis-sentinel /etc/redis/sentinel.conf
+    ports:
+      - "26380:26379"
+
+  sentinel3:
+    image: redis:latest
+    container_name: sentinel3
+    depends_on:
+      - redis-master
+    volumes:
+      - ./sentinel.conf:/etc/redis/sentinel.conf
+    command: redis-sentinel /etc/redis/sentinel.conf
+    ports:
+      - "26381:26379"
 
   app:
     build: .
@@ -31,11 +77,11 @@ services:
       - .env
     environment:
       DB_HOST: db
-      REDIS_HOST: redis
+      REDIS_MASTER_NAME: mymaster
     depends_on:
       db:
         condition: service_healthy
-      redis:
+      redis-master:
         condition: service_healthy
     restart: on-failure
 
@@ -48,6 +94,7 @@ services:
     depends_on:
       - app
 
-volumes: 
+volumes:
   mysql_data:
-  redis_data:
+  redis_master_data:
+  redis_replica_data:
