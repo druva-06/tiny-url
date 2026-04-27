@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"log"
 )
 
 type URLRepository struct {
@@ -34,5 +35,11 @@ func (r *URLRepository) UpdateShortCode(id int64, shortCode string) (err error) 
 func (r *URLRepository) GetLongURL(shortCode string) (longURL string, err error) {
 	query := `SELECT long_url FROM url_mapping WHERE short_code = ?`
 	err = r.db.QueryRow(query, shortCode).Scan(&longURL)
+	return
+}
+func (r *URLRepository) DeteleShortURL(shortcode string) (err error) {
+	query := `DELETE From url_mapping WHERE short_code = ?`
+	log.Printf("[DeleteShortURL] query %s %s", query, shortcode)
+	_, err = r.db.Exec(query, shortcode)
 	return
 }

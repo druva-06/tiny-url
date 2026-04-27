@@ -69,3 +69,21 @@ func (s *URLService) GetLongURL(ctx context.Context, shortCode string) (string, 
 	log.Printf("[GetOriginalURL] END code=%s", shortCode)
 	return longUrl, err
 }
+
+func (s *URLService) DeteleShortURL(ctx context.Context, shortcode string) error {
+
+	err := s.repo.DeteleShortURL(shortcode)
+	if err != nil {
+		log.Printf("[DeleteShortURL] DB ERROR code=%s err=%v", shortcode, err)
+		return err
+	}
+	cacheKey := "url:short:" + shortcode
+	deleted, error := s.rdb.Del(ctx, cacheKey)
+	if error != nil {
+		log.Printf("[DeleteShortURL]Issue when deleting shortcode %s", shortcode)
+		return error
+	} else {
+		log.Printf("[DeleteShortURL]successfully Deleted %v rows and key %s", deleted, shortcode)
+	}
+	return nil
+}

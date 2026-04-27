@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/druva-06/tiny-url/internal/dto/request"
@@ -39,4 +40,17 @@ func (h *URLHandler) GetLongURL(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"long_url": longUrl})
+}
+
+func (h *URLHandler) DeteleShortURL(c *gin.Context) {
+	ctx := c.Request.Context()
+	code := c.Param("code")
+	log.Printf("[DeleteShortUrl] START code=%s", code)
+	err := h.service.DeteleShortURL(ctx, code)
+	if err != nil {
+		log.Printf("DeleteShortURL error %s", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"key deleted": code})
 }

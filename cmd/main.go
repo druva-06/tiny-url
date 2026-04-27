@@ -23,9 +23,9 @@ func main() {
 	handler := handler.NewURLHandler(service)
 
 	r := gin.Default()
-
 	r.POST("/url/short", handler.CreateShortURL)
 	r.GET("/url/short/:code", handler.GetLongURL)
+	r.DELETE("/url/shorten/:code", handler.DeteleShortURL)
 
 	r.Run(":8080")
 
