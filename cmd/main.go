@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/druva-06/tiny-url/internal/config"
+	"github.com/druva-06/tiny-url/internal/db"
 	"github.com/druva-06/tiny-url/internal/handler"
 	"github.com/druva-06/tiny-url/internal/repository"
 	"github.com/druva-06/tiny-url/internal/repository/cache"
@@ -15,11 +17,11 @@ import (
 
 func main() {
 	loadEnv()
-	db := config.NewDB()
+	cluster := db.NewDBCluster()
 	redis := config.NewRedis()
 
 	rdb := cache.NewURLCache(redis)
-	repo := repository.NewURLRepository(db)
+	repo := repository.NewURLRepository(cluster)
 	service := service.NewURLService(repo, rdb)
 	handler := handler.NewURLHandler(service)
 
@@ -34,12 +36,12 @@ func main() {
 }
 
 func loadEnv() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		// Fallback in case we are running `go run main.go` from the cmd/ directory
-		err = godotenv.Load("../.env")
-		if err != nil {
-			log.Println("No .env file found (expected in prod)")
+	// Try both root and cmd-relative locations; missing files are fine in prod/container envs.
+	for _, envPath := range []string{".env", "../.env"} {
+		if err := godotenv.Load(envPath); err == nil {
+			return
+		} else if !os.IsNotExist(err) {
+			log.Printf("Failed to load %s: %v\n", envPath, err)
 		}
 	}
 }

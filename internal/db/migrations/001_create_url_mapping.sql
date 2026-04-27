@@ -1,6 +1,6 @@
 CREATE TABLE url_mapping (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    short_code VARCHAR(20) NOT NULL UNIQUE,
+    short_code VARCHAR(20) UNIQUE,
     long_url TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -48,7 +48,7 @@ func (s *URLService) GetLongURL(ctx context.Context, shortCode string) (string, 
 	}
 	if err == redis.Nil {
 		log.Printf("[GetOriginalURL] CACHE MISS code=%s", shortCode)
-	} else if err != nil {
+	} else {
 		log.Printf("[GetOriginalURL] REDIS ERROR code=%s err=%v", shortCode, err.Error())
 	}
 	log.Printf("[GetOriginalURL] FETCHING FROM DB code=%s", shortCode)
@@ -74,7 +74,6 @@ func (s *URLService) GetLongURL(ctx context.Context, shortCode string) (string, 
 	return longUrl, err
 }
 
-// TODO
 func (s *URLService) UpdateLongUrl(ctx context.Context, shortCode string, request request.CreateShortURLRequest) (response.ShortUrlResponse, error) {
 	longUrl := request.LongUrl
 	cacheKey := "url:short:" + shortCode

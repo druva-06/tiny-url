@@ -1,18 +1,35 @@
 services:
-  db:
+  mysql-primary:
     image: mysql:8.0
+    container_name: mysql-primary
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: Druva@123
       MYSQL_DATABASE: tiny_url
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_primary_data:/var/lib/mysql
+      - ./mysql-primary.cnf:/etc/mysql/conf.d/mysql.cnf
+    ports:
+      - "3307:3306"
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
       timeout: 3s
       retries: 20
-      start_period: 10s
+
+  mysql-replica-1:
+    image: mysql:8.0
+    container_name: mysql-replica-1
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: Druva@123
+    depends_on:
+      - mysql-primary
+    volumes:
+      - mysql_replica1_data:/var/lib/mysql
+      - ./mysql-replica.cnf:/etc/mysql/conf.d/mysql.cnf
+    ports:
+      - "3308:3306"
     
   redis-master:
     image: redis:latest
@@ -76,10 +93,11 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: db
+      DB_HOST: mysql-primary
+      REPLICA_DB_HOST: mysql-replica-1
       REDIS_MASTER_NAME: mymaster
     depends_on:
-      db:
+      mysql-primary:
         condition: service_healthy
       redis-master:
         condition: service_healthy
@@ -95,6 +113,7 @@ services:
       - app
 
 volumes:
-  mysql_data:
+  mysql_primary_data:
+  mysql_replica1_data:
   redis_master_data:
   redis_replica_data:
