@@ -1,14 +1,14 @@
 services:
-  mysql-primary:
+  mysql-s0-primary:
     image: mysql:8.0
-    container_name: mysql-primary
+    container_name: mysql-s0-primary
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: Druva@123
       MYSQL_DATABASE: tiny_url
     volumes:
-      - mysql_primary_data:/var/lib/mysql
-      - ./mysql-primary.cnf:/etc/mysql/conf.d/mysql.cnf
+      - mysql_s0_primary_data:/var/lib/mysql
+      - ./shard0/primary/conf:/etc/mysql/conf.d
     ports:
       - "3307:3306"
     healthcheck:
@@ -17,19 +17,75 @@ services:
       timeout: 3s
       retries: 20
 
-  mysql-replica-1:
+  mysql-s0-replica-1:
     image: mysql:8.0
-    container_name: mysql-replica-1
+    container_name: mysql-s0-replica-1
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: Druva@123
     depends_on:
-      - mysql-primary
+      - mysql-s0-primary
     volumes:
-      - mysql_replica1_data:/var/lib/mysql
-      - ./mysql-replica.cnf:/etc/mysql/conf.d/mysql.cnf
+      - mysql_s0_replica1_data:/var/lib/mysql
+      - ./shard0/replica/conf:/etc/mysql/conf.d
     ports:
       - "3308:3306"
+    
+  proxysql-s0:
+    image: proxysql/proxysql
+    container_name: proxysql-s0
+    ports:
+      - "6032:6032"
+      - "6033:6033"
+    depends_on:
+      - mysql-s0-primary
+      - mysql-s0-replica-1
+    volumes:
+      - ./shard0/proxysql.cnf:/etc/proxysql.cnf
+
+  mysql-s1-primary:
+    image: mysql:8.0
+    container_name: mysql-s1-primary
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: Druva@123
+      MYSQL_DATABASE: tiny_url
+    volumes:
+      - mysql_s1_primary_data:/var/lib/mysql
+      - ./shard1/primary/conf:/etc/mysql/conf.d
+    ports:
+      - "3309:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mysql-s1-replica-1:
+    image: mysql:8.0
+    container_name: mysql-s1-replica-1
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: Druva@123
+    depends_on:
+      - mysql-s1-primary
+    volumes:
+      - mysql_s1_replica1_data:/var/lib/mysql
+      - ./shard1/replica/conf:/etc/mysql/conf.d
+    ports:
+      - "3310:3306"
+    
+  proxysql-s1:
+    image: proxysql/proxysql
+    container_name: proxysql-s1
+    ports:
+      - "6034:6032"
+      - "6035:6033"
+    depends_on:
+      - mysql-s1-primary
+      - mysql-s1-replica-1
+    volumes:
+      - ./shard1/proxysql.cnf:/etc/proxysql.cnf
     
   redis-master:
     image: redis:latest
@@ -93,11 +149,13 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: mysql-primary
-      REPLICA_DB_HOST: mysql-replica-1
+      # DB_HOST: mysql-s0-primary
+      # REPLICA_DB_HOST: mysql-s0-replica-1
       REDIS_MASTER_NAME: mymaster
     depends_on:
-      mysql-primary:
+      mysql-s0-primary:
+        condition: service_healthy
+      mysql-s1-primary:
         condition: service_healthy
       redis-master:
         condition: service_healthy
@@ -113,7 +171,9 @@ services:
       - app
 
 volumes:
-  mysql_primary_data:
-  mysql_replica1_data:
+  mysql_s0_primary_data:
+  mysql_s0_replica1_data:
+  mysql_s1_primary_data:
+  mysql_s1_replica1_data:
   redis_master_data:
   redis_replica_data:

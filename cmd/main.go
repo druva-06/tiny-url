@@ -17,11 +17,11 @@ import (
 
 func main() {
 	loadEnv()
-	cluster := db.NewDBCluster()
+	shard := db.NewDBShard()
 	redis := config.NewRedis()
 
 	rdb := cache.NewURLCache(redis)
-	repo := repository.NewURLRepository(cluster)
+	repo := repository.NewURLRepository(shard)
 	service := service.NewURLService(repo, rdb)
 	handler := handler.NewURLHandler(service)
 

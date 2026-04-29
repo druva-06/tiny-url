@@ -7,36 +7,35 @@ import (
 )
 
 type URLRepository struct {
-	cluster *db.DBCluster
+	shard *db.ShardManager
 }
 
-func NewURLRepository(cluster *db.DBCluster) *URLRepository {
-	return &URLRepository{cluster: cluster}
+func NewURLRepository(shard *db.ShardManager) *URLRepository {
+	return &URLRepository{shard: shard}
 }
 
-func (r *URLRepository) Create(longUrl string) (int64, error) {
-	query := `INSERT INTO url_mapping (long_url) VALUES (?)`
-	result, err := r.cluster.Exec(query, longUrl)
+func (r *URLRepository) Create(shortCode, longUrl string) (string, error) {
+	db := r.shard.GetDB(shortCode)
+	query := `INSERT INTO url_mapping (short_code, long_url) VALUES (?,?)`
+	_, err := db.Exec(query, shortCode, longUrl)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-	return id, nil
+	return shortCode, nil
 }
 
 func (r *URLRepository) UpdateShortCode(id int64, shortCode string) (err error) {
+	db := r.shard.GetDB(shortCode)
 	query := `UPDATE url_mapping SET short_code = ? WHERE id = ?`
-	_, err = r.cluster.Exec(query, shortCode, id)
+	_, err = db.Exec(query, shortCode, id)
 	return
 }
 
 func (r *URLRepository) GetLongURL(shortCode string) (longURL string, err error) {
+	db := r.shard.GetDB(shortCode)
 	query := `SELECT long_url FROM url_mapping WHERE short_code = ?`
 	log.Printf("[URLRepository] QUERY code=%s", shortCode)
-	rows, err := r.cluster.Query(query, shortCode)
+	rows, err := db.Query(query, shortCode)
 	if err != nil {
 		return
 	}
@@ -51,8 +50,9 @@ func (r *URLRepository) GetLongURL(shortCode string) (longURL string, err error)
 }
 
 func (r *URLRepository) UpdateLongUrl(shortCode string, longUrl string) (err error) {
+	db := r.shard.GetDB(shortCode)
 	query := `UPDATE url_mapping SET long_url = ? WHERE short_code = ?`
 	log.Printf("[URLRepository] QUERY code=%s long_url=%s query=%s", shortCode, longUrl, query)
-	_, err = r.cluster.Exec(query, longUrl, shortCode)
+	_, err = db.Exec(query, longUrl, shortCode)
 	return
 }

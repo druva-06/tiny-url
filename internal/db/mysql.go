@@ -5,17 +5,21 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func NewDBCluster() *DBCluster {
-	primary := NewDB(os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
-	replica := NewDB(os.Getenv("REPLICA_DB_USER"), os.Getenv("REPLICA_DB_PASSWORD"), os.Getenv("REPLICA_DB_HOST"), os.Getenv("REPLICA_DB_PORT"), os.Getenv("REPLICA_DB_NAME"))
-	return &DBCluster{
-		Primary:  primary,
-		Replicas: []*sql.DB{replica},
+func NewDBShard() *ShardManager {
+	shards := make(map[int]*sql.DB)
+
+	proxySql0 := NewDB(os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("PROXY_SQL_0_HOST"), os.Getenv("PROXY_SQL_0_PORT"), os.Getenv("DB_NAME"))
+	proxySql1 := NewDB(os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("PROXY_SQL_1_HOST"), os.Getenv("PROXY_SQL_1_PORT"), os.Getenv("DB_NAME"))
+
+	shards[0] = proxySql0
+	shards[1] = proxySql1
+
+	return &ShardManager{
+		Shards: shards,
 	}
 }
 
@@ -27,21 +31,21 @@ func NewDB(user, password, host, port, dbName string) *sql.DB {
 		port,
 		dbName,
 	)
-	log.Println("Database Connection url=", dsn)
+	log.Println("Shard Connection url=", dsn)
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// 🔥 Pooling (critical)
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(10)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	// db.SetMaxOpenConns(25)
+	// db.SetMaxIdleConns(10)
+	// db.SetConnMaxLifetime(5 * time.Minute)
 
 	if err := db.Ping(); err != nil {
-		log.Fatal("DB not reachable:", err)
+		log.Fatal("Shard not reachable:", err)
 	}
 
-	log.Printf("✅ DB Connected, URL=%s", dsn)
+	log.Printf("✅ Shard Connected, URL=%s", dsn)
 	return db
 }

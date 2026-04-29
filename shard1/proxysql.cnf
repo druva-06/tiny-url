@@ -1,0 +1,34 @@
+datadir="/var/lib/proxysql"
+
+admin_variables=
+{
+  admin_credentials="admin:admin"
+  mysql_ifaces="0.0.0.0:6032"
+}
+
+mysql_variables=
+{
+  interfaces="0.0.0.0:6033"
+}
+
+mysql_servers =
+(
+  { address="mysql-s1-primary", port=3306, hostgroup=10 },
+  { address="mysql-s1-replica-1", port=3306, hostgroup=20 }
+)
+
+mysql_users =
+(
+  { username="root", password="Druva@123", default_hostgroup=10 }
+)
+
+mysql_query_rules =
+(
+  {
+    rule_id=1
+    active=1
+    match_pattern="^SELECT"
+    destination_hostgroup=20
+    apply=1
+  }
+)

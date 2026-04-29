@@ -5,14 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/druva-06/tiny-url/internal/dto/request"
 	"github.com/druva-06/tiny-url/internal/dto/response"
 	"github.com/druva-06/tiny-url/internal/repository"
 	"github.com/druva-06/tiny-url/internal/repository/cache"
-	"github.com/jxskiss/base62"
+	"github.com/druva-06/tiny-url/internal/util"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -26,12 +25,9 @@ func NewURLService(r *repository.URLRepository, rdb *cache.URLCache) *URLService
 }
 
 func (s *URLService) CreateShortURL(longUrl string) (string, error) {
-	id, err := s.repo.Create(longUrl)
+	shortCode := util.GenerateShortCode()
+	_, err := s.repo.Create(shortCode, longUrl)
 	if err != nil {
-		return "", err
-	}
-	shortCode := base62.EncodeToString([]byte(strconv.FormatInt(id, 10)))
-	if err = s.repo.UpdateShortCode(id, shortCode); err != nil {
 		return "", err
 	}
 	return shortCode, nil
